@@ -22,6 +22,7 @@ import rw.imps.service.UserService;
 import rw.imps.util.IMPSConstant;
 
 import javax.servlet.ServletContext;
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -48,7 +49,7 @@ public class JwtAuthenticationController {
     private JwtUserDetailsService userDetailsService;
 
     @PostMapping("/authenticate")
-    public ResponseEntity<?> createAuthenticationToken(@RequestBody JwtRequest authenticationRequest) throws Exception {
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody @Valid JwtRequest authenticationRequest) throws Exception {
 
         authenticate(authenticationRequest.getUsername(), authenticationRequest.getPassword());
 
@@ -76,7 +77,7 @@ public class JwtAuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> saveUser(@RequestBody UserDTO user) {
+    public ResponseEntity<?> saveUser(@RequestBody @Valid UserDTO user) {
         try {
             User user1 = userDetailsService.save(user);
             System.out.println(user1);
