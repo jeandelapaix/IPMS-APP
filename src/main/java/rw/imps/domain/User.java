@@ -7,9 +7,10 @@ import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
+import java.util.List;
 import java.util.Objects;
 
-@Entity
+@Entity(name="users")
 public class User {
     /**
      *
@@ -33,6 +34,10 @@ public class User {
     @NotEmpty(message = "Password can not be null")
     @JsonIgnore
     private String password;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user")
+    private List<UserRole> userRoleList;
 
     public Long getUserId() {
         return userId;
@@ -96,6 +101,14 @@ public class User {
 
     public void setUserType(String userType) {
         this.userType = userType;
+    }
+
+    public List<UserRole> getUserRoleList() {
+        return userRoleList;
+    }
+
+    public void setUserRoleList(List<UserRole> userRoleList) {
+        this.userRoleList = userRoleList;
     }
 
     @Override

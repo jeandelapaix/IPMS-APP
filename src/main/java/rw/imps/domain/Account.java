@@ -1,7 +1,4 @@
 package rw.imps.domain;
-
-import sun.plugin2.message.Message;
-
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import java.time.LocalDateTime;

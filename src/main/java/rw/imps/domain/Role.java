@@ -1,9 +1,9 @@
 package rw.imps.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import javax.persistence.*;
+import java.util.List;
 
 @Entity
 public class Role {
@@ -13,6 +13,10 @@ public class Role {
 	private Long roleId;
 	private String name;
 	private String description;
+
+	@JsonIgnore
+	@OneToMany(mappedBy = "role")
+	private List<UserRole> userRoleList;
 
 	public long getRoleId() {
 		return roleId;
@@ -38,4 +42,11 @@ public class Role {
 		this.description = description;
 	}
 
+	public List<UserRole> getUserRoleList() {
+		return userRoleList;
+	}
+
+	public void setUserRoleList(List<UserRole> userRoleList) {
+		this.userRoleList = userRoleList;
+	}
 }

@@ -5,15 +5,15 @@ import javax.persistence.*;
 @Entity
 public class UserRole {
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue
 	private long id;
 
 	@ManyToOne
-	@JoinColumn(name = "user")
+	@JoinColumn
 	private User user;
 
 	@ManyToOne
-	@JoinColumn(name = "role")
+	@JoinColumn
 	private Role role;
 
 	public Long getId() {
