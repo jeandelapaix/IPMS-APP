@@ -68,31 +68,10 @@ public class ImpsApplication {
         }
     }
 
-//    @Bean
-//    public MessageSourceAccessor createMessageSourceAccessor() {
-//        return new MessageSourceAccessor(messageSource());
-//    }
-//
-//    @Bean(name = "messageSource")
-//    public ReloadableResourceBundleMessageSource messageSource() {
-//        ReloadableResourceBundleMessageSource resource = new ReloadableResourceBundleMessageSource();
-//        resource.setBasename("classpath:messages");
-//        resource.setDefaultEncoding("UTF-8");
-//        return resource;
-//    }
-//
-//    @Bean(name = "validator")
-//    public LocalValidatorFactoryBean validator() {
-//        LocalValidatorFactoryBean bean = new LocalValidatorFactoryBean();
-//        bean.setValidationMessageSource(messageSource());
-//        return bean;
-//    }
-//
-//    @Bean
-//    public MessageSource messageSource1() {
-//        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-//        messageSource.setBasename("messages");
-//        return messageSource;
-//    }
-
+    @Bean
+    public MessageSource messageSource1() {
+        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+        messageSource.setBasename("messages");
+        return messageSource;
+    }
 }
