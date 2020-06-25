@@ -22,6 +22,7 @@ import rw.imps.service.UserService;
 import rw.imps.util.IMPSConstant;
 
 import javax.servlet.ServletContext;
+import java.util.List;
 
 @RestController
 @CrossOrigin
@@ -98,5 +99,10 @@ public class JwtAuthenticationController {
     @GetMapping("/testing")
     public String testing() {
         return "Lea Iradukunda";
+    }
+
+    @GetMapping("/all")
+    public List<User> allUsers(){
+        return userService.findAll();
     }
 }

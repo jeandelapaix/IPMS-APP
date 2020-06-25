@@ -44,4 +44,5 @@ public interface UserService {
 	long countUsers();
 
 	User findByEmail(String email);
+
 }
