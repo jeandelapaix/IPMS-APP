@@ -1,10 +1,10 @@
 package rw.imps.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.hibernate.validator.constraints.NotBlank;
 
 import javax.persistence.*;
 import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.util.List;
@@ -22,6 +22,7 @@ public class User {
     @Email(message = "Provided Email is invalid")
     private String email;
     private String phone;
+    @NotBlank
     @NotEmpty(message = " Full Name should not be empty")
     private String fullName;
 
