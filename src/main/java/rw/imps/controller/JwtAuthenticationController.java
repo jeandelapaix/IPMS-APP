@@ -96,7 +96,6 @@ public class JwtAuthenticationController {
     }
 
     @GetMapping("/testing")
-    @ApiOperation(value = "", authorizations = {@Authorization(value = "jwtToken")})
     public String testing() {
         return "Lea Iradukunda";
     }
