@@ -19,10 +19,11 @@ public class User {
     @Id
     @GeneratedValue
     private Long userId;
+    @NotEmpty(message = "Email can not be empty")
     @Email(message = "Provided Email is invalid")
     private String email;
+    @NotEmpty(message = "Phone number can not be empty")
     private String phone;
-    @NotBlank
     @NotEmpty(message = " Full Name should not be empty")
     private String fullName;
 
