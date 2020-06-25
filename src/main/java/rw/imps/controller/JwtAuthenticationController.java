@@ -3,6 +3,7 @@ package rw.imps.controller;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -77,14 +78,10 @@ public class JwtAuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> saveUser(@RequestBody @Valid UserDTO user) {
-        try {
+    public ResponseEntity<?> saveUser(@RequestBody @Valid UserDTO user) throws Exception {
             User user1 = userDetailsService.save(user);
             System.out.println(user1);
-            return ResponseEntity.ok(user1);
-        } catch (Exception e) {
-            return ResponseEntity.ok(e.getMessage());
-        }
+            return new ResponseEntity<User>(user1, HttpStatus.OK);
     }
 
     private void authenticate(String userName, String password) throws Exception {
