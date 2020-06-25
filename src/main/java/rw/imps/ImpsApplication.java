@@ -4,7 +4,13 @@ import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.support.MessageSourceAccessor;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.validation.Validator;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import rw.imps.service.DailyOperationTrackService;
 import springfox.documentation.builders.*;
 import springfox.documentation.service.*;
@@ -61,5 +67,32 @@ public class ImpsApplication {
             ex.printStackTrace();
         }
     }
+
+//    @Bean
+//    public MessageSourceAccessor createMessageSourceAccessor() {
+//        return new MessageSourceAccessor(messageSource());
+//    }
+//
+//    @Bean(name = "messageSource")
+//    public ReloadableResourceBundleMessageSource messageSource() {
+//        ReloadableResourceBundleMessageSource resource = new ReloadableResourceBundleMessageSource();
+//        resource.setBasename("classpath:messages");
+//        resource.setDefaultEncoding("UTF-8");
+//        return resource;
+//    }
+//
+//    @Bean(name = "validator")
+//    public LocalValidatorFactoryBean validator() {
+//        LocalValidatorFactoryBean bean = new LocalValidatorFactoryBean();
+//        bean.setValidationMessageSource(messageSource());
+//        return bean;
+//    }
+//
+//    @Bean
+//    public MessageSource messageSource1() {
+//        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+//        messageSource.setBasename("messages");
+//        return messageSource;
+//    }
 
 }
