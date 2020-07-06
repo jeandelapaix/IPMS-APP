@@ -39,7 +39,7 @@ public class JwtUserDetailsService implements UserDetailsService {
                 new ArrayList<>());
     }
 
-    public User save(@Valid UserDTO user) throws Exception {
+    public User save(UserDTO user) throws Exception {
         Account account = null;
 
         User testEmail = userDaoc.findByEmail(user.getEmail());

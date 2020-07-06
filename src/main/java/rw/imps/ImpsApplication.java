@@ -104,9 +104,6 @@ public class ImpsApplication extends WebMvcConfigurerAdapter {
                 user.setUserType("admin");
                 user.setEmail("patrick@gmail.com");
                 user.setPhone("0788894545");
-                Role role = new Role();
-                role.setName("admin");
-                role.setDescription("having all access");
 
                 User savedUser = userService.save(user);
             }
