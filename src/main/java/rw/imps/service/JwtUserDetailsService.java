@@ -45,9 +45,9 @@ public class JwtUserDetailsService implements UserDetailsService {
         User testEmail = userDaoc.findByEmail(user.getEmail());
         User testUserName = userDaoc.findByUsername(user.getUsername());
 
-        if (user.getUserType().equalsIgnoreCase("")) {
-            throw new Exception("You should provide type of the user");
-        }
+//        if (user.getUserType().equalsIgnoreCase("")) {
+//            throw new Exception("You should provide type of the user");
+//        }
         if (testEmail != null) {
             throw new Exception("The provided email is used by another account");
         }
