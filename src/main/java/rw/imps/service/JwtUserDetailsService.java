@@ -55,7 +55,7 @@ public class JwtUserDetailsService implements UserDetailsService {
             throw new Exception("The provided user name is used by another account");
         }
 
-        if (user.getUserType().equalsIgnoreCase("user")) {
+        if (user.getUserType().equalsIgnoreCase("user")||user.getUserType().equals("")) {
             account = new Agent();
         }
         if (user.getUserType().equalsIgnoreCase("admin")) {
