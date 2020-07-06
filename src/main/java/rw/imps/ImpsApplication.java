@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
@@ -21,10 +22,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
+import rw.imps.domain.Owner;
 import rw.imps.domain.Role;
 import rw.imps.domain.User;
 import rw.imps.domain.UserRole;
+import rw.imps.security.UserDTO;
 import rw.imps.service.DailyOperationTrackService;
+import rw.imps.service.JwtUserDetailsService;
 import rw.imps.service.UserService;
 import springfox.documentation.builders.*;
 import springfox.documentation.service.*;
@@ -35,6 +39,7 @@ import springfox.documentation.swagger.web.SecurityConfiguration;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.annotation.PostConstruct;
+import javax.validation.Valid;
 import java.util.*;
 
 @SpringBootApplication
@@ -48,7 +53,10 @@ public class ImpsApplication extends WebMvcConfigurerAdapter {
     private DailyOperationTrackService dailyOperationTrackService;
 
     @Autowired
-    private UserService userService;
+    private JwtUserDetailsService userService;
+
+    @Autowired
+    private UserService userService2;
 
     public static void main(String[] args) {
         SpringApplication.run(ImpsApplication.class, args);
@@ -88,8 +96,8 @@ public class ImpsApplication extends WebMvcConfigurerAdapter {
     @PostConstruct
     public void savingUser() {
         try {
-            if (userService.findAll().size() == 0) {
-                User user = new User();
+            if (userService2.findAll().size() == 0) {
+                UserDTO user = new UserDTO();
                 user.setPassword("Patrick123!");
                 user.setUsername("admin");
                 user.setFullName("Patrick Nt");
@@ -100,13 +108,7 @@ public class ImpsApplication extends WebMvcConfigurerAdapter {
                 role.setName("admin");
                 role.setDescription("having all access");
 
-                UserRole userRole = new UserRole();
-                userRole.setRole(role);
-                userRole.setUser(user);
-                Set<UserRole> userRoles = new HashSet<>();
-                userRoles.add(userRole);
-
-                userService.createUser(user, userRoles);
+                User savedUser = userService.save(user);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
