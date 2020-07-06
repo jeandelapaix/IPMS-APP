@@ -6,12 +6,26 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.core.env.Environment;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.servlet.LocaleResolver;
+import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
+import org.springframework.web.servlet.i18n.SessionLocaleResolver;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
+import rw.imps.domain.Role;
+import rw.imps.domain.User;
+import rw.imps.domain.UserRole;
 import rw.imps.service.DailyOperationTrackService;
+import rw.imps.service.UserService;
 import springfox.documentation.builders.*;
 import springfox.documentation.service.*;
 import springfox.documentation.spi.DocumentationType;
@@ -21,17 +35,20 @@ import springfox.documentation.swagger.web.SecurityConfiguration;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @SpringBootApplication
 @EnableSwagger2
-public class ImpsApplication {
+@PropertySource(value = "classpath:application.properties")
+public class ImpsApplication extends WebMvcConfigurerAdapter {
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String DEFAULT_INCLUDE_PATTERN = "/api/.*";
 
     @Autowired
     private DailyOperationTrackService dailyOperationTrackService;
+
+    @Autowired
+    private UserService userService;
 
     public static void main(String[] args) {
         SpringApplication.run(ImpsApplication.class, args);
@@ -68,10 +85,51 @@ public class ImpsApplication {
         }
     }
 
+    @PostConstruct
+    public void savingUser() {
+        try {
+            if (userService.findAll().size() == 0) {
+                User user = new User();
+                user.setPassword("Patrick123!");
+                user.setUsername("admin");
+                user.setFullName("Patrick Nt");
+                user.setUserType("admin");
+                user.setEmail("patrick@gmail.com");
+                user.setPhone("0788894545");
+                Role role = new Role();
+                role.setName("admin");
+                role.setDescription("having all access");
+
+                UserRole userRole = new UserRole();
+                userRole.setRole(role);
+                userRole.setUser(user);
+                Set<UserRole> userRoles = new HashSet<>();
+                userRoles.add(userRole);
+
+                userService.createUser(user, userRoles);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+    }
+
     @Bean
-    public MessageSource messageSource1() {
-        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-        messageSource.setBasename("messages");
+    public MessageSource messageSource() {
+        ReloadableResourceBundleMessageSource messageSource
+                = new ReloadableResourceBundleMessageSource();
+
+        messageSource.setBasename("classpath:messages");
+        messageSource.setDefaultEncoding("UTF-8");
         return messageSource;
     }
+
+    @Bean
+    public LocalValidatorFactoryBean getValidator() {
+        LocalValidatorFactoryBean bean = new LocalValidatorFactoryBean();
+        bean.setValidationMessageSource(messageSource());
+        return bean;
+    }
+
+
 }

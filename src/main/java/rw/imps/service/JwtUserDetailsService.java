@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
@@ -38,7 +39,7 @@ public class JwtUserDetailsService implements UserDetailsService {
                 new ArrayList<>());
     }
 
-    public User save(UserDTO user) throws Exception {
+    public User save(@Valid UserDTO user) throws Exception {
         Account account = null;
 
         User testEmail = userDaoc.findByEmail(user.getEmail());

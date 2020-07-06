@@ -1,11 +1,13 @@
 package rw.imps.security;
 
-import javax.persistence.Transient;
+
+import javax.validation.constraints.NotEmpty;
 
 public class UserDTO {
 	private String username;
 	private String email;
 	private String phone;
+	@NotEmpty(message = "{NotEmpty}")
 	private String fullName;
 	private String password;
 	private String userType;

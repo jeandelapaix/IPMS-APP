@@ -24,7 +24,6 @@ public class ExceptionHandlerClass {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-//	    @ResponseBody
     public ValidationErrorDTO processValidationError(MethodArgumentNotValidException ex) {
         BindingResult result = ex.getBindingResult();
         List<FieldError> fieldErrors = result.getFieldErrors();
@@ -36,10 +35,10 @@ public class ExceptionHandlerClass {
         ValidationErrorDTO dto = new ValidationErrorDTO();
         dto.setErrorType("ValidationError");
 
-
         for (FieldError fieldError : fieldErrors) {
             String localizedErrorMessage = resolveLocalizedErrorMessage(fieldError);
             dto.addFieldError(fieldError.getField(), localizedErrorMessage);
+            System.out.println(localizedErrorMessage);
         }
 
         return dto;

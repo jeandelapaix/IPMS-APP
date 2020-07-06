@@ -82,10 +82,10 @@ public class JwtAuthenticationController {
         User user1 = null;
         try {
             user1 = userDetailsService.save(user);
+            return new ResponseEntity<User>(user1, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<String>("something is wrong " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<User>(user1, HttpStatus.OK);
     }
 
     private void authenticate(String userName, String password) throws Exception {

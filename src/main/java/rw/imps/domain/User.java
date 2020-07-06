@@ -19,21 +19,21 @@ public class User {
     @Id
     @GeneratedValue
     private Long userId;
-    @NotEmpty(message = "Email can not be empty")
-    @Email(message = "Provided Email is invalid")
+    @NotEmpty(message="{NotEmpty}")
+    @Email(message = "{email}")
     private String email;
-    @NotEmpty(message = "Phone number can not be empty")
+    @NotEmpty(message="{NotEmpty}")
     private String phone;
-    @NotEmpty(message = " Full Name should not be empty")
+    @NotEmpty(message="{NotEmpty}")
     private String fullName;
 
     @Transient
     private String userType;
 
-    @NotEmpty(message = " User Name should not be empty")
+    @NotEmpty(message="{NotEmpty}")
     @Column(unique = true)
     private String username;
-    @NotEmpty(message = "Password can not be null")
+    @NotEmpty(message="{NotEmpty}")
     @JsonIgnore
     private String password;
 
