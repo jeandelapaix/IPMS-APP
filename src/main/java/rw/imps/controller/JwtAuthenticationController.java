@@ -81,7 +81,7 @@ public class JwtAuthenticationController {
     public ResponseEntity<?> saveUser(@RequestBody @Valid UserDTO user) {
         User user1 = null;
         try {
-            user1.setUserType("user");
+            user.setUserType("user");
             user1 = userDetailsService.save(user);
             return new ResponseEntity<User>(user1, HttpStatus.OK);
         } catch (Exception e) {
