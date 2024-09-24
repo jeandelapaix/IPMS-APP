@@ -1,4 +1,3 @@
-
 WITH AccountList AS (
     SELECT 
         CR.ACTIVE_COMP_PKREF, 
@@ -94,4 +93,16 @@ FROM
 WHERE 
     CD.COMP_ID = :company_id
     AND CP.PROFILE_CODE = :profile_code
-    AND CP.STATUS = 'ACTIVE';
+    AND CP.STATUS = 'ACTIVE'
+
+GROUP BY 
+    CD.COMP_ID, 
+    CD.COMP_NAME, 
+    CP.PROFILE_CODE, 
+    CPD.PROFILE_NAME, 
+    CPD.APR_STRUCTURE_TYPE, 
+    CPD.NUMBER_OF_APPROVERS, 
+    CP.STATUS, 
+    AL.accountList, 
+    PEM.paymentEntryMethod, 
+    TPD.tier;
