@@ -1,23 +1,44 @@
 SELECT 
     CD.COMP_ID AS companyId,
-    CD.COMP_NAME AS companyName,
     CP.PROFILE_CODE AS profileCode,
+    CD.COMP_NAME AS companyName,
     CPD.PROFILE_NAME AS profileName,
     CPD.APR_STRUCTURE_TYPE AS approvalStructureType,
-    CPD.NUMBER_OF_APPROVERS AS noOfApprovers,
     CP.STATUS AS profileStatus,
+    LISTAGG(DISTINCT MCPPP.ENTRY_METHOD, ', ') WITHIN GROUP(ORDER BY MCPPP.ENTRY_METHOD) AS paymentEntryMethod,
+    
     TO_CLOB(JSON_ARRAYAGG(
         JSON_OBJECT(
-            'bankId' VALUE MR.MCES_BANK_ID,
-            'accountNumber' VALUE MR.MCES_ACCOUNT_NUMBER
-        ) ORDER BY MR.MCES_BANK_ID
-    )) AS accountList,
-    LISTAGG(DISTINCT MCPPP.ENTRY_METHOD, ', ') WITHIN GROUP(ORDER BY MCPPP.ENTRY_METHOD) AS paymentEntryMethod,
+            'accountNumber' VALUE MR.MCES_ACCOUNT_NUMBER,
+            'bankId' VALUE MR.MCES_BANK_ID
+        )
+    )) AS account,
+
+    TO_CLOB(JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id' VALUE TIER.TIER_ID_PKREF,
+            'minAmount' VALUE TIER.MIN_AMOUNT,
+            'maxAmount' VALUE TIER.MAX_AMOUNT,
+            'panel' VALUE JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id' VALUE PANEL.PANEL_ID_PKREF,
+                    'approvalOrder' VALUE PANEL.PANEL_APPROVAL_ORDER,
+                    'group' VALUE JSON_OBJECT(
+                        'id' VALUE PANEL_APP_GRP.USERGRP_PK,
+                        'orderInPanel' VALUE PANEL.PANEL_APPROVAL_ORDER,
+                        'approvalsRequired' VALUE PANEL_APP_GRP.NO_OF_APPROVAL_REQUIRED
+                    )
+                )
+            )
+        )
+    )) AS tier,
+    
     CPD.CURRENCY,
-    TIER.TIER_ID_PKREF,
-    TIER.MIN_AMOUNT AS minAmount,
-    TIER.MAX_AMOUNT AS maxAmount,
-    LISTAGG(PANEL.PANEL_ID_PKREF || '#' || PANEL.PANEL_APPROVAL_ORDER || '#' || APP_GROUP, ',') AS panelDetails
+    
+    TO_CLOB(JSON_ARRAYAGG(
+        DISTINCT PYMT_CAT
+    )) AS paymentCategory
+    
 FROM 
     MCESSERV.COMPANY_DETAILS CD
 INNER JOIN 
@@ -35,10 +56,7 @@ INNER JOIN
 INNER JOIN 
     MCESSERV.COMP_PAYMENT_PROFILE_PANEL PANEL ON PANEL.TIER_ID_PKREF = TIER.TIER_ID_PKREF
 LEFT JOIN 
-    (SELECT USERGRP_PK || ':' || NO_OF_APPROVAL_REQUIRED AS APP_GROUP, PANEL_ID_PKREF
-     FROM MCESSERV.COMP_PAYMENT_PROFILE_PANEL_APPGRP 
-     WHERE ACTIVE_PYMT_PROF_PKREF = 51007001
-     GROUP BY PANEL_ID_PKREF) APP_GROUP ON PANEL.PANEL_ID_PKREF = APP_GROUP.PANEL_ID_PKREF
+    MCESSERV.COMP_PAYMENT_PROFILE_PANEL_APPGRP PANEL_APP_GRP ON PANEL.PANEL_ID_PKREF = PANEL_APP_GRP.PANEL_ID_PKREF
 WHERE 
     CD.COMP_ID = :company_id
     AND CP.PROFILE_CODE = :profile_code
@@ -49,7 +67,6 @@ GROUP BY
     CP.PROFILE_CODE,
     CPD.PROFILE_NAME,
     CPD.APR_STRUCTURE_TYPE,
-    CPD.NUMBER_OF_APPROVERS,
     CP.STATUS,
     CPD.CURRENCY,
     TIER.TIER_ID_PKREF,
