@@ -1,1 +1,97 @@
 
+WITH AccountList AS (
+    SELECT 
+        CR.ACTIVE_COMP_PKREF, 
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'accountNumber' VALUE MR.MCES_ACCOUNT_NUMBER,
+                'bankId' VALUE MR.MCES_BANK_ID
+            )
+        ) AS accountList
+    FROM MCESSERV.COMP_RESOURCE CR
+    LEFT JOIN MCESSERV.MCES_RESOURCE MR 
+        ON CR.RESOURCE_PK = MR.RESOURCE_PK
+    GROUP BY CR.ACTIVE_COMP_PKREF
+),
+PaymentEntryMethod AS (
+    SELECT 
+        CP.PYMT_PROF_PK,
+        LISTAGG(DISTINCT MCPPP.ENTRY_METHOD, ', ') WITHIN GROUP (ORDER BY MCPPP.ENTRY_METHOD) AS paymentEntryMethod
+    FROM MCESSERV.COMP_PAYMENT_PROFILE_PYMTENTRY MCPPP
+    INNER JOIN MCESSERV.COMP_PAYMENT_PROFILE CP 
+        ON CP.PYMT_PROF_PK = MCPPP.active_pymt_prof_pkref
+    GROUP BY CP.PYMT_PROF_PK
+),
+TierPanelDetails AS (
+    SELECT 
+        CP.PYMT_PROF_PK, 
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id' VALUE TIER.TIER_ID_PKREF,
+                'minAmount' VALUE TIER.MIN_AMOUNT,
+                'maxAmount' VALUE TIER.MAX_AMOUNT,
+                'panel' VALUE JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id' VALUE PANEL.PANEL_ID_PKREF,
+                        'approvalOrder' VALUE PANEL.PANEL_APPROVAL_ORDER,
+                        'group' VALUE JSON_OBJECT(
+                            'id' VALUE APP_GROUP.USERGRP_PK,
+                            'orderInPanel' VALUE PANEL.PANEL_APPROVAL_ORDER,
+                            'approvalsRequired' VALUE APP_GROUP.NO_OF_APPROVAL_REQUIRED
+                        )
+                    )
+                )
+            )
+        ) AS tier
+    FROM MCESSERV.COMP_PAYMENT_PROFILE_TIER TIER
+    INNER JOIN MCESSERV.COMP_PAYMENT_PROFILE_PANEL PANEL 
+        ON PANEL.TIER_ID_PKREF = TIER.TIER_ID_PKREF
+    LEFT JOIN MCESSERV.COMP_PAYMENT_PROFILE_PANEL_APPGRP APP_GROUP 
+        ON PANEL.PANEL_ID_PKREF = APP_GROUP.PANEL_ID_PKREF
+    INNER JOIN MCESSERV.COMP_PAYMENT_PROFILE CP 
+        ON CP.PYMT_PROF_PK = TIER.ACTIVE_PYMT_PROF_PKREF
+    GROUP BY CP.PYMT_PROF_PK
+)
+
+SELECT 
+    CD.COMP_ID AS companyId,
+    CD.COMP_NAME AS companyName,
+    CP.PROFILE_CODE AS profileCode,
+    CPD.PROFILE_NAME AS profileName,
+    CPD.APR_STRUCTURE_TYPE AS approvalStructureType,
+    CPD.NUMBER_OF_APPROVERS AS noOfApprovers,
+    CP.STATUS AS profileStatus,
+    AL.accountList,
+    PEM.paymentEntryMethod,
+    TPD.tier
+FROM 
+    MCESSERV.COMPANY_DETAILS CD
+
+    -- Joining with COMP_APP table
+    INNER JOIN MCESSERV.COMP_APP CA 
+        ON CD.ACTIVE_COMP_PKREF = CA.MCES_COMPANY
+
+    -- Joining COMP_PAYMENT_PROFILE through COMP_APP
+    INNER JOIN MCESSERV.COMP_PAYMENT_PROFILE CP 
+        ON CA.CMAP_PK = CP.CMAP_PKREF
+
+    -- Join with the payment profile details table
+    INNER JOIN MCESSERV.COMP_PAYMENT_PROFILE_DETAILS CPD 
+        ON CP.PYMT_PROF_PK = CPD.ACTIVE_PYMT_PROF_PKREF
+
+    -- Subquery join for AccountList
+    LEFT JOIN AccountList AL 
+        ON AL.ACTIVE_COMP_PKREF = CD.ACTIVE_COMP_PKREF
+
+    -- Subquery join for Payment Entry Method
+    LEFT JOIN PaymentEntryMethod PEM 
+        ON PEM.PYMT_PROF_PK = CP.PYMT_PROF_PK
+
+    -- Subquery join for Tier and Panel details
+    LEFT JOIN TierPanelDetails TPD 
+        ON TPD.PYMT_PROF_PK = CP.PYMT_PROF_PK
+
+WHERE 
+    CD.COMP_ID = :company_id
+    AND CP.PROFILE_CODE = :profile_code
+    AND CP.STATUS = 'ACTIVE';
