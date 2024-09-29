@@ -1,0 +1,193 @@
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class PaymentProfileServiceTest {
+
+    @InjectMocks
+    private PaymentProfileService paymentProfileService;
+
+    @Mock
+    private ProfileInfoMapper profileInfoMapper;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.initMocks(this);
+    }
+
+    @Test
+    void fetchAccountInfo_returnsAccounts() throws IOException {
+        Long companyId = 123L;
+        String profileCode = "PROFILE1";
+        String aprStructureType = "FIXED";
+        String accountJson = "[{\"accountNo\":\"12345\",\"bankId\":\"BANK1\"}]";
+        List<Account> mockAccounts = List.of(new Account("12345", "BANK1"));
+
+        // Mock the mapper response
+        when(profileInfoMapper.getAccountsByProfileWithAprStructureType(companyId, profileCode, aprStructureType))
+            .thenReturn(accountJson);
+        when(objectMapper.readValue(accountJson, new TypeReference<List<Account>>() {}))
+            .thenReturn(mockAccounts);
+
+        CompletableFuture<List<Account>> future = paymentProfileService.fetchAccountInfo(companyId, profileCode, aprStructureType);
+
+        // Verify the response
+        List<Account> accounts = future.join();
+        assertEquals(1, accounts.size());
+        assertEquals("12345", accounts.get(0).getAccountNo());
+        assertEquals("BANK1", accounts.get(0).getBankId());
+    }
+
+    @Test
+    void fetchRangeInfo_returnsRanges() throws IOException {
+        Long companyId = 123L;
+        String profileCode = "PROFILE1";
+        String aprStructureType = "FIXED";
+        String rangeJson = "[{\"id\":1,\"minAmount\":100.0,\"maxAmount\":1000.0}]";
+        List<Range> mockRanges = List.of(new Range(1L, 100.0, 1000.0));
+
+        // Mock the mapper response
+        when(profileInfoMapper.getRangesByProfileWithAprStructureType(companyId, profileCode, aprStructureType))
+            .thenReturn(rangeJson);
+        when(objectMapper.readValue(rangeJson, new TypeReference<List<Range>>() {}))
+            .thenReturn(mockRanges);
+
+        CompletableFuture<List<Range>> future = paymentProfileService.fetchRangeInfo(companyId, profileCode, aprStructureType);
+
+        // Verify the response
+        List<Range> ranges = future.join();
+        assertEquals(1, ranges.size());
+        assertEquals(1L, ranges.get(0).getId());
+        assertEquals(100.0, ranges.get(0).getMinAmount());
+        assertEquals(1000.0, ranges.get(0).getMaxAmount());
+    }
+
+    @Test
+    void fetchAccountInfo_handlesError_returnsEmptyList() {
+        Long companyId = 123L;
+        String profileCode = "PROFILE1";
+        String aprStructureType = "FIXED";
+
+        when(profileInfoMapper.getAccountsByProfileWithAprStructureType(companyId, profileCode, aprStructureType))
+            .thenThrow(new RuntimeException("Database error"));
+
+        CompletableFuture<List<Account>> future = paymentProfileService.fetchAccountInfo(companyId, profileCode, aprStructureType);
+
+        // Verify empty list is returned in case of error
+        List<Account> accounts = future.join();
+        assertTrue(accounts.isEmpty());
+    }
+
+    @Test
+    void fetchRangeInfo_handlesError_returnsEmptyList() {
+        Long companyId = 123L;
+        String profileCode = "PROFILE1";
+        String aprStructureType = "FIXED";
+
+        when(profileInfoMapper.getRangesByProfileWithAprStructureType(companyId, profileCode, aprStructureType))
+            .thenThrow(new RuntimeException("Database error"));
+
+        CompletableFuture<List<Range>> future = paymentProfileService.fetchRangeInfo(companyId, profileCode, aprStructureType);
+
+        // Verify empty list is returned in case of error
+        List<Range> ranges = future.join();
+        assertTrue(ranges.isEmpty());
+    }
+}
+
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+
+@WebMvcTest(PaymentProfileController.class)
+class PaymentProfileControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private PaymentProfileService paymentProfileService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.initMocks(this);
+    }
+
+    @Test
+    void getPaymentProfileDetails_returnsProfileResponse() throws Exception {
+        Long companyId = 123L;
+        String profileCode = "PROFILE1";
+        String aprStructureType = "FIXED";
+
+        ProfileResponse mockProfileResponse = new ProfileResponse();
+        mockProfileResponse.setCompanyId(companyId);
+        mockProfileResponse.setCompanyName("Test Company");
+        mockProfileResponse.setProfileCode(profileCode);
+        mockProfileResponse.setProfileName("Test Profile");
+        mockProfileResponse.setApprovalStructureType(aprStructureType);
+        mockProfileResponse.setAccountLst(List.of(new Account("12345", "BANK1")));
+        mockProfileResponse.setRange(List.of(new Range(1L, 100.0, 1000.0)));
+
+        // Mock service response
+        when(paymentProfileService.getPaymentProfileDetails(companyId, profileCode, aprStructureType))
+            .thenReturn(CompletableFuture.completedFuture(mockProfileResponse));
+
+        mockMvc.perform(get("/api/profiles")
+                .param("companyId", String.valueOf(companyId))
+                .param("profileCode", profileCode)
+                .param("aprStructureType", aprStructureType))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.companyId").value(companyId))
+            .andExpect(jsonPath("$.companyName").value("Test Company"))
+            .andExpect(jsonPath("$.profileCode").value(profileCode))
+            .andExpect(jsonPath("$.accountLst[0].accountNo").value("12345"))
+            .andExpect(jsonPath("$.range[0].id").value(1))
+            .andExpect(jsonPath("$.range[0].minAmount").value(100.0));
+    }
+
+    @Test
+    void getPaymentProfileDetails_handlesError_returnsInternalServerError() throws Exception {
+        Long companyId = 123L;
+        String profileCode = "PROFILE1";
+        String aprStructureType = "FIXED";
+
+        // Mock service to throw exception
+        when(paymentProfileService.getPaymentProfileDetails(companyId, profileCode, aprStructureType))
+            .thenThrow(new RuntimeException("Internal Server Error"));
+
+        mockMvc.perform(get("/api/profiles")
+                .param("companyId", String.valueOf(companyId))
+                .param("profileCode", profileCode)
+                .param("aprStructureType", aprStructureType))
+            .andExpect(status().isInternalServerError());
+    }
+}
