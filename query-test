@@ -1,41 +1,56 @@
-SELECT 
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'accountNo', mr.MCES_ACCOUNT_NUMBER,
-            'bankId', mr.MCES_BANK_ID,
-            'paymentCategory', JSON_ARRAYAGG(cppc.CATEGORY_TYPE)
-        )
-    ) AS accountLst
-FROM 
-    MCES_COMPANY mc
-    JOIN COMP_APP ca ON ca.ACTIVE_COMP_PKREF = mc.COMP_PK
-    JOIN COMP_PAYMENT_PROFILE cpp ON cpp.CMAP_PKREF = ca.CMAP_PK
-    JOIN COMP_PAYMENT_PROFILE_ACCT cppa ON cppa.ACTIVE_PYMT_PROF_PKREF = cpp.PYMT_PROF_PK
-    JOIN COMP_RESOURE cr ON cr.CRES_PK = cppa.CRES_PKREF
-    JOIN MCES_RESOURCE mr ON mr.RESOURCE_PK = cr.RESOURCE_PKREF
-    LEFT JOIN COMP_PAYMENT_PROFILE_PYMT_CTGR cppc ON cppc.ACTIVE_PYMT_PROF_PKREF = cpp.PYMT_PROF_PK
-WHERE 
-    mc.COMP_ID = :companyId
-    AND cpp.PROFILE_CODE = :profileCode
-GROUP BY 
-    mr.MCES_ACCOUNT_NUMBER, mr.MCES_BANK_ID;
+import org.apache.ibatis.annotations.*;
+import java.util.List;
 
+@Mapper
+public interface TierMapper {
 
-SELECT 
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', cppr.PYMT_PROF_RANGE_PK,
-            'minAmount', cppr.AMT_RANGE_MIN,
-            'maxAmount', cppr.AMT_RANGE_MAX
-        )
-    ) AS range
-FROM 
-    COMP_PAYMENT_PROFILE cpp
-    JOIN COMP_PAYMENT_PROFILE_RANGE cppr ON cppr.ACTIVE_PYMT_PROF_PKREF = cpp.PYMT_PROF_PK
-WHERE 
-    cpp.PROFILE_CODE = :profileCode
-    AND cpp.CMAP_PKREF = (
-        SELECT CMAP_PK FROM COMP_APP WHERE ACTIVE_COMP_PKREF = (
-            SELECT COMP_PK FROM MCES_COMPANY WHERE COMP_ID = :companyId
-        )
-    );
+    @Select("SELECT " +
+            "ct.PYMT_PROF_TIER_PK AS tierId, " +
+            "ct.AMT_RANGE_MIN AS minAmount, " +
+            "ct.AMT_RANGE_MAX AS maxAmount, " +
+            "cpl.PANEL_ID_PKREF AS panelId, " +
+            "cpl.PANEL_APPROVAL_ORDER AS approvalOrder, " +
+            "cpgrp.PYMT_PROF_PANEL_APP_GRP_PK AS groupId, " +
+            "cpgrp.SORT_ORDER AS orderInPanel, " +
+            "cpgrp.NO_OF_APPROVAL_REQUIRED AS approvalsRequired " +
+            "FROM COMP_PAYMENT_PROFILE cpp " +
+            "JOIN COMP_PAYMENT_PROFILE_TIER ct ON cpp.PYMT_PROF_PK = ct.ACTIVE_PYMT_PROF_PKREF " +
+            "LEFT JOIN COMP_PAYMENT_PROFILE_PANEL cpl ON cpl.ACTIVE_PYMT_PROF_PKREF = cpp.PYMT_PROF_PK " +
+            "LEFT JOIN COMP_PYMT_PROFILE_PANEL_APPGRP cpgrp ON cpl.PANEL_ID_PKREF = cpgrp.PANEL_ID_PKREF " +
+            "JOIN COMP_APP ca ON cpp.CMAP_PKREF = ca.CMAP_PK " +
+            "JOIN MCES_COMPANY mc ON ca.ACTIVE_COMP_PKREF = mc.COMP_PK " +
+            "WHERE cpp.PROFILE_CODE = #{profileCode} " +
+            "AND mc.COMP_ID = #{companyId} " +
+            "ORDER BY ct.PYMT_PROF_TIER_PK, cpl.PANEL_ID_PKREF, cpgrp.PYMT_PROF_PANEL_APP_GRP_PK")
+    @Results({
+        @Result(property = "id", column = "tierId"),
+        @Result(property = "minAmount", column = "minAmount"),
+        @Result(property = "maxAmount", column = "maxAmount"),
+        
+        // Fetch panels under this tier
+        @Result(property = "panel", javaType = List.class, column = "tierId",
+                many = @Many(select = "getPanelsByTierId"))
+    })
+    List<TierDto> getTiersAndPanels(@Param("companyId") Long companyId, @Param("profileCode") String profileCode);
+
+    // Define nested query for fetching panels
+    @Select("SELECT " +
+            "cpl.PANEL_ID_PKREF AS panelId, " +
+            "cpl.PANEL_APPROVAL_ORDER AS approvalOrder, " +
+            "cpgrp.PYMT_PROF_PANEL_APP_GRP_PK AS groupId, " +
+            "cpgrp.SORT_ORDER AS orderInPanel, " +
+            "cpgrp.NO_OF_APPROVAL_REQUIRED AS approvalsRequired " +
+            "FROM COMP_PAYMENT_PROFILE_PANEL cpl " +
+            "LEFT JOIN COMP_PYMT_PROFILE_PANEL_APPGRP cpgrp ON cpl.PANEL_ID_PKREF = cpgrp.PANEL_ID_PKREF " +
+            "WHERE cpl.ACTIVE_PYMT_PROF_PKREF = #{tierId}")
+    @Results({
+        @Result(property = "id", column = "panelId"),
+        @Result(property = "approvalOrder", column = "approvalOrder"),
+        
+        // Fetch group details under this panel
+        @Result(property = "group.id", column = "groupId"),
+        @Result(property = "group.orderInPanel", column = "orderInPanel"),
+        @Result(property = "group.approvalsRequired", column = "approvalsRequired")
+    })
+    List<PanelDto> getPanelsByTierId(Long tierId);
+}
