@@ -1,25 +1,46 @@
 SELECT 
-    ct.PYMT_PROF_TIER_PK AS tierId,
-    ct.AMT_RANGE_MIN AS minAmount,
-    ct.AMT_RANGE_MAX AS maxAmount,
-    
-    cpl.PANEL_ID_PKREF AS panelId,
-    cpl.PANEL_APPROVAL_ORDER AS approvalOrder,
-    
-    cpgrp.PYMT_PROF_PANEL_APP_GRP_PK AS groupId,
-    cpgrp.SORT_ORDER AS orderInPanel,
-    cpgrp.NO_OF_APPROVAL_REQUIRED AS approvalsRequired
+    profile.PROFILE_CODE AS profileCode,
+    tier.TIER_ID_PKREF AS tierId,
+    tier.AMT_RANGE_MIN AS minAmount,
+    tier.AMT_RANGE_MAX AS maxAmount,
+    LISTAGG(
+        panel.PANEL_ID_PKREF || '#' || 
+        panel.PANEL_APPROVAL_ORDER || '#' || 
+        panel_app_grp.APP_GROUP, 
+        ',') WITHIN GROUP (ORDER BY panel.PANEL_ID_PKREF) AS panelDetails
 FROM 
-    COMP_PAYMENT_PROFILE cpp
-    JOIN COMP_PAYMENT_PROFILE_TIER ct ON cpp.PYMT_PROF_PK = ct.ACTIVE_PYMT_PROF_PKREF
-    LEFT JOIN COMP_PAYMENT_PROFILE_PANEL cpl ON cpl.ACTIVE_PYMT_PROF_PKREF = cpp.PYMT_PROF_PK
-    LEFT JOIN COMP_PYMT_PROFILE_PANEL_APPGRP cpgrp ON cpl.PANEL_ID_PKREF = cpgrp.PANEL_ID_PKREF
-    JOIN COMP_PYMT_PROF_TIER_PANEL_ID cptpi ON ct.TIER_ID_PKREF = cptpi.TIER_PANEL_ID_PK
+    MCESSERV.COMP_PAYMENT_PROFILE_TIER tier
+INNER JOIN 
+    MCESSERV.COMP_PAYMENT_PROFILE profile 
+    ON tier.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK
+INNER JOIN 
+    MCESSERV.COMP_PAYMENT_PROFILE_PANEL panel 
+    ON panel.TIER_ID_PKREF = tier.TIER_ID_PKREF
+INNER JOIN (
+    SELECT 
+        PANEL_ID_PKREF,
+        LISTAGG(USERGRP_PK || ':' || NO_OF_APPROVAL_REQUIRED, '|') 
+        WITHIN GROUP (ORDER BY USERGRP_PK) AS APP_GROUP
+    FROM 
+        MCESSERV.COMP_PAYMENT_PROFILE_PANEL_APPGRP
+    WHERE 
+        ACTIVE_PYMT_PROF_PKREF = :activePymtProfPkref
+    GROUP BY 
+        PANEL_ID_PKREF
+) panel_app_grp 
+    ON panel_app_grp.PANEL_ID_PKREF = panel.PANEL_ID_PKREF
 WHERE 
-    cpp.PROFILE_CODE = :profileCode
-    AND cpp.CMAP_PKREF = (
-        SELECT CMAP_PK FROM COMP_APP 
-        WHERE ACTIVE_COMP_PKREF = (
-            SELECT COMP_PK FROM MCES_COMPANY WHERE COMP_ID = :companyId
-        )
-    );
+    profile.PROFILE_CODE = :profileCode
+    AND EXISTS (
+        SELECT 1 
+        FROM MCESSERV.MCES_COMPANY mc
+        WHERE mc.COMP_PK = :companyId
+        AND mc.COMP_PK = profile.ACTIVE_COMP_PKREF
+    )
+GROUP BY 
+    profile.PROFILE_CODE, 
+    tier.TIER_ID_PKREF, 
+    tier.AMT_RANGE_MIN, 
+    tier.AMT_RANGE_MAX
+ORDER BY 
+    tier.TIER_ID_PKREF;
