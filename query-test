@@ -10,78 +10,65 @@ public class PaymentProfileRepositoryImpl implements PaymentProfileRepositoryCus
 
     @Override
     public Optional<ApproverGroupDto> findApproverGroup(Long companyId, Long groupId, String approvalStructureType) {
-        String queryString = buildApproverGroupQuery(companyId, groupId, approvalStructureType);
+        String queryString = buildApproverGroupQuery();
         Query query = entityManager.createNativeQuery(queryString, "ApproverGroupMapping");
 
+        // Set parameters directly in the query
         query.setParameter("companyId", companyId);
-        if (groupId != null) {
-            query.setParameter("groupId", groupId);
-        }
-        if (approvalStructureType != null) {
-            query.setParameter("approvalStructureType", approvalStructureType);
-        }
+        query.setParameter("groupId", groupId);
+        query.setParameter("approvalStructureType", approvalStructureType);
 
         return query.getResultList().stream().findFirst();
     }
 
     @Override
     public Optional<AccountDto> findAccount(Long companyId, String accountNo) {
-        String queryString = buildAccountQuery(companyId, accountNo);
+        String queryString = buildAccountQuery();
         Query query = entityManager.createNativeQuery(queryString, "AccountMapping");
 
+        // Set parameters directly in the query
         query.setParameter("companyId", companyId);
-        if (accountNo != null) {
-            query.setParameter("accountNo", accountNo);
-        }
+        query.setParameter("accountNo", accountNo);
 
         return query.getResultList().stream().findFirst();
     }
 
-    // Methods to dynamically build queries
-    private String buildApproverGroupQuery(Long companyId, Long groupId, String approvalStructureType) {
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("SELECT profile.PROFILE_CODE AS profileCode, ");
-        queryBuilder.append("details.PROFILE_NAME AS profileName, ");
-        queryBuilder.append("details.APR_STRUCTURE_TYPE AS approvalStructureType, ");
-        queryBuilder.append("appGrp.PYMT_PROF_PANEL_APP_GRP_PK AS approverGroupId, ");
-        queryBuilder.append("appGrp.NO_OF_APPROVAL_REQUIRED AS approvalsRequired, ");
-        queryBuilder.append("appGrp.SORT_ORDER AS orderInPanel ");
-        queryBuilder.append("FROM MCES_COMPANY company ");
-        queryBuilder.append("INNER JOIN COMP_APP compApp ON compApp.ACTIVE_COMP_PKREF = company.COMP_PK ");
-        queryBuilder.append("INNER JOIN COMP_PAYMENT_PROFILE profile ON profile.CMAP_PKREF = compApp.CMAP_PK ");
-        queryBuilder.append("INNER JOIN COMP_PAYMENT_PROFILE_DETAILS details ON details.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ");
-        queryBuilder.append("INNER JOIN COMP_PAYMENT_PROFILE_PANEL panel ON panel.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ");
-        queryBuilder.append("INNER JOIN COMP_PYMT_PROFILE_PANEL_APPGRP appGrp ON appGrp.PANEL_ID_PKREF = panel.PANEL_ID_PKREF ");
-        queryBuilder.append("WHERE company.COMP_ID = :companyId ");
-        
-        if (groupId != null) {
-            queryBuilder.append("AND appGrp.PYMT_PROF_PANEL_APP_GRP_PK = :groupId ");
-        }
-        
-        if (approvalStructureType != null) {
-            queryBuilder.append("AND details.APR_STRUCTURE_TYPE = :approvalStructureType ");
-        }
-        return queryBuilder.toString();
+    // Fixed queries with required parameters
+    private String buildApproverGroupQuery() {
+        return new StringBuilder()
+                .append("SELECT profile.PROFILE_CODE AS profileCode, ")
+                .append("details.PROFILE_NAME AS profileName, ")
+                .append("details.APR_STRUCTURE_TYPE AS approvalStructureType, ")
+                .append("appGrp.PYMT_PROF_PANEL_APP_GRP_PK AS approverGroupId, ")
+                .append("appGrp.NO_OF_APPROVAL_REQUIRED AS approvalsRequired, ")
+                .append("appGrp.SORT_ORDER AS orderInPanel ")
+                .append("FROM MCES_COMPANY company ")
+                .append("INNER JOIN COMP_APP compApp ON compApp.ACTIVE_COMP_PKREF = company.COMP_PK ")
+                .append("INNER JOIN COMP_PAYMENT_PROFILE profile ON profile.CMAP_PKREF = compApp.CMAP_PK ")
+                .append("INNER JOIN COMP_PAYMENT_PROFILE_DETAILS details ON details.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
+                .append("INNER JOIN COMP_PAYMENT_PROFILE_PANEL panel ON panel.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
+                .append("INNER JOIN COMP_PYMT_PROFILE_PANEL_APPGRP appGrp ON appGrp.PANEL_ID_PKREF = panel.PANEL_ID_PKREF ")
+                .append("WHERE company.COMP_ID = :companyId ")
+                .append("AND appGrp.PYMT_PROF_PANEL_APP_GRP_PK = :groupId ")
+                .append("AND details.APR_STRUCTURE_TYPE = :approvalStructureType ")
+                .toString();
     }
 
-    private String buildAccountQuery(Long companyId, String accountNo) {
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("SELECT profile.PROFILE_CODE AS profileCode, ");
-        queryBuilder.append("details.PROFILE_NAME AS profileName, ");
-        queryBuilder.append("details.APR_STRUCTURE_TYPE AS approvalStructureType, ");
-        queryBuilder.append("resource.MCES_ACCOUNT_NUMBER AS accountNo ");
-        queryBuilder.append("FROM MCES_COMPANY company ");
-        queryBuilder.append("INNER JOIN COMP_APP compApp ON compApp.ACTIVE_COMP_PKREF = company.COMP_PK ");
-        queryBuilder.append("INNER JOIN COMP_PAYMENT_PROFILE profile ON profile.CMAP_PKREF = compApp.CMAP_PK ");
-        queryBuilder.append("INNER JOIN COMP_PAYMENT_PROFILE_DETAILS details ON details.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ");
-        queryBuilder.append("INNER JOIN COMP_PAYMENT_PROFILE_ACCT profileAcct ON profileAcct.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ");
-        queryBuilder.append("INNER JOIN COMP_RESOURE compResource ON compResource.CRES_PK = profileAcct.CRES_PKREF ");
-        queryBuilder.append("INNER JOIN MCES_RESOURCE resource ON resource.RESOURCE_PK = compResource.RESOURCE_PKREF ");
-        queryBuilder.append("WHERE company.COMP_ID = :companyId ");
-        
-        if (accountNo != null) {
-            queryBuilder.append("AND resource.MCES_ACCOUNT_NUMBER = :accountNo ");
-        }
-        return queryBuilder.toString();
+    private String buildAccountQuery() {
+        return new StringBuilder()
+                .append("SELECT profile.PROFILE_CODE AS profileCode, ")
+                .append("details.PROFILE_NAME AS profileName, ")
+                .append("details.APR_STRUCTURE_TYPE AS approvalStructureType, ")
+                .append("resource.MCES_ACCOUNT_NUMBER AS accountNo ")
+                .append("FROM MCES_COMPANY company ")
+                .append("INNER JOIN COMP_APP compApp ON compApp.ACTIVE_COMP_PKREF = company.COMP_PK ")
+                .append("INNER JOIN COMP_PAYMENT_PROFILE profile ON profile.CMAP_PKREF = compApp.CMAP_PK ")
+                .append("INNER JOIN COMP_PAYMENT_PROFILE_DETAILS details ON details.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
+                .append("INNER JOIN COMP_PAYMENT_PROFILE_ACCT profileAcct ON profileAcct.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
+                .append("INNER JOIN COMP_RESOURE compResource ON compResource.CRES_PK = profileAcct.CRES_PKREF ")
+                .append("INNER JOIN MCES_RESOURCE resource ON resource.RESOURCE_PK = compResource.RESOURCE_PKREF ")
+                .append("WHERE company.COMP_ID = :companyId ")
+                .append("AND resource.MCES_ACCOUNT_NUMBER = :accountNo ")
+                .toString();
     }
 }
