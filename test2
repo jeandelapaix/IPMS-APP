@@ -1,0 +1,18 @@
+SELECT 
+    profile.PROFILE_CODE AS profileCode,
+    details.PROFILE_NAME AS profileName,
+    details.APR_STRUCTURE_TYPE AS approvalStructureType,
+    appGrp.PYMT_PROF_PANEL_APP_GRP_PK AS approverGroupId,
+    appGrp.NO_OF_APPROVAL_REQUIRED AS approvalsRequired,
+    appGrp.SORT_ORDER AS orderInPanel
+FROM 
+    MCES_COMPANY company
+INNER JOIN COMP_APP compApp ON compApp.ACTIVE_COMP_PKREF = company.COMP_PK
+INNER JOIN COMP_PAYMENT_PROFILE profile ON profile.CMAP_PKREF = compApp.CMAP_PK
+INNER JOIN COMP_PAYMENT_PROFILE_DETAILS details ON details.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK
+INNER JOIN COMP_PAYMENT_PROFILE_PANEL panel ON panel.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK
+INNER JOIN COMP_PYMT_PROFILE_PANEL_APPGRP appGrp ON appGrp.PANEL_ID_PKREF = panel.PANEL_ID_PKREF
+WHERE 
+    company.COMP_ID = :companyId
+    AND appGrp.PYMT_PROF_PANEL_APP_GRP_PK = :groupId
+    AND details.APR_STRUCTURE_TYPE = :approvalStructureType
