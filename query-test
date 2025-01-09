@@ -1,74 +1,54 @@
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
-import java.util.Optional;
+private AggregationOperation createConditionalTierOperation() {
+    return context -> new Document("$addFields",
+        new Document("tier", new Document("$cond", Arrays.asList(
+            new Document("$eq", Arrays.asList("$ppDetails.aprStructureType", "PANEL")),
 
-public class PaymentProfileRepositoryImpl implements PaymentProfileRepositoryCustom {
+            new Document("$map", new Document()
+                .append("input", "$tiers")
+                .append("as", "tier")
+                .append("in", new Document()
+                    .append("id", "$$tier.tierIdPkref")
+                    .append("minAmount", "$$tier.amtRangeMin")
+                    .append("maxAmount", "$$tier.amtRangeMax")
+                    .append("isActivePkrfMatch", new Document("$eq", Arrays.asList("$$tier.activePymtProfPkref", "$pymtProfPk")))
+                    .append("panel", createPanel())
+                )
+            ),
 
-    @PersistenceContext
-    private EntityManager entityManager;
+            "$$REMOVE"
+        )))
+    );
+}
+private Document createPanel() {
+    return new Document("$filter", new Document()
+        .append("input", "$$tier.panels")
+        .append("as", "panel")
+        .append("cond", new Document("$and", Arrays.asList(
+            new Document("$eq", Arrays.asList("$$panel.activePymtProfPkref", "$pymtProfPk")),
+            new Document("$eq", Arrays.asList("$$panel.isPanelActivePkrfMatch", true))
+        )))
+        .append("in", new Document()
+            .append("id", "$$panel.panelIdPkref")
+            .append("approvalOrder", "$$panel.panelApprovalOrder")
+            .append("isPanelActivePkrfMatch", new Document("$eq", Arrays.asList("$$panel.activePymtProfPkref", "$pymtProfPk")))
+            .append("group", createGroup())
+        )
+    );
+}
 
-    @Override
-    public Optional<ApproverGroupDto> findApproverGroup(Long companyId, Long groupId, String approvalStructureType) {
-        String queryString = buildApproverGroupQuery();
-        Query query = entityManager.createNativeQuery(queryString, "ApproverGroupMapping");
-
-        // Set parameters directly in the query
-        query.setParameter("companyId", companyId);
-        query.setParameter("groupId", groupId);
-        query.setParameter("approvalStructureType", approvalStructureType);
-
-        return query.getResultList().stream().findFirst();
-    }
-
-    @Override
-    public Optional<AccountDto> findAccount(Long companyId, String accountNo) {
-        String queryString = buildAccountQuery();
-        Query query = entityManager.createNativeQuery(queryString, "AccountMapping");
-
-        // Set parameters directly in the query
-        query.setParameter("companyId", companyId);
-        query.setParameter("accountNo", accountNo);
-
-        return query.getResultList().stream().findFirst();
-    }
-
-    // Fixed queries with required parameters
-    private String buildApproverGroupQuery() {
-        return new StringBuilder()
-                .append("SELECT profile.PROFILE_CODE AS profileCode, ")
-                .append("details.PROFILE_NAME AS profileName, ")
-                .append("details.APR_STRUCTURE_TYPE AS approvalStructureType, ")
-                .append("appGrp.PYMT_PROF_PANEL_APP_GRP_PK AS approverGroupId, ")
-                .append("appGrp.NO_OF_APPROVAL_REQUIRED AS approvalsRequired, ")
-                .append("appGrp.SORT_ORDER AS orderInPanel ")
-                .append("FROM MCES_COMPANY company ")
-                .append("INNER JOIN COMP_APP compApp ON compApp.ACTIVE_COMP_PKREF = company.COMP_PK ")
-                .append("INNER JOIN COMP_PAYMENT_PROFILE profile ON profile.CMAP_PKREF = compApp.CMAP_PK ")
-                .append("INNER JOIN COMP_PAYMENT_PROFILE_DETAILS details ON details.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
-                .append("INNER JOIN COMP_PAYMENT_PROFILE_PANEL panel ON panel.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
-                .append("INNER JOIN COMP_PYMT_PROFILE_PANEL_APPGRP appGrp ON appGrp.PANEL_ID_PKREF = panel.PANEL_ID_PKREF ")
-                .append("WHERE company.COMP_ID = :companyId ")
-                .append("AND appGrp.PYMT_PROF_PANEL_APP_GRP_PK = :groupId ")
-                .append("AND details.APR_STRUCTURE_TYPE = :approvalStructureType ")
-                .toString();
-    }
-
-    private String buildAccountQuery() {
-        return new StringBuilder()
-                .append("SELECT profile.PROFILE_CODE AS profileCode, ")
-                .append("details.PROFILE_NAME AS profileName, ")
-                .append("details.APR_STRUCTURE_TYPE AS approvalStructureType, ")
-                .append("resource.MCES_ACCOUNT_NUMBER AS accountNo ")
-                .append("FROM MCES_COMPANY company ")
-                .append("INNER JOIN COMP_APP compApp ON compApp.ACTIVE_COMP_PKREF = company.COMP_PK ")
-                .append("INNER JOIN COMP_PAYMENT_PROFILE profile ON profile.CMAP_PKREF = compApp.CMAP_PK ")
-                .append("INNER JOIN COMP_PAYMENT_PROFILE_DETAILS details ON details.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
-                .append("INNER JOIN COMP_PAYMENT_PROFILE_ACCT profileAcct ON profileAcct.ACTIVE_PYMT_PROF_PKREF = profile.PYMT_PROF_PK ")
-                .append("INNER JOIN COMP_RESOURE compResource ON compResource.CRES_PK = profileAcct.CRES_PKREF ")
-                .append("INNER JOIN MCES_RESOURCE resource ON resource.RESOURCE_PK = compResource.RESOURCE_PKREF ")
-                .append("WHERE company.COMP_ID = :companyId ")
-                .append("AND resource.MCES_ACCOUNT_NUMBER = :accountNo ")
-                .toString();
-    }
+private Document createGroup() {
+    return new Document("$filter", new Document()
+        .append("input", "$$panel.approverGroup")
+        .append("as", "group")
+        .append("cond", new Document("$and", Arrays.asList(
+            new Document("$eq", Arrays.asList("$$group.activePymtProfPkref", "$pymtProfPk")),
+            new Document("$eq", Arrays.asList("$$group.isGroupActive", true))
+        )))
+        .append("in", new Document()
+            .append("id", "$$group.id")
+            .append("sortOrder", "$$group.sortOrder")
+            .append("approvalIsRequired", "$$group.noOfApprovalRequired")
+            .append("isGroupActive", new Document("$eq", Arrays.asList("$$group.isGroupActive", true)))
+        )
+    );
 }
