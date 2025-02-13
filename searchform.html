@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Log Search</title>
+</head>
+<body>
+    <h2>Search Logs</h2>
+    <form action="/search" method="get">
+        <label>Company ID:</label>
+        <input type="text" name="companyId"/>
+        <br/>
+        <label>User ID:</label>
+        <input type="text" name="userId"/>
+        <br/>
+        <label>Start Time:</label>
+        <input type="datetime-local" name="startTime"/>
+        <br/>
+        <label>End Time:</label>
+        <input type="datetime-local" name="endTime"/>
+        <br/>
+        <button type="submit">Search</button>
+    </form>
+</body>
+</html>
